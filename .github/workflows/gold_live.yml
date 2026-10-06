@@ -1,0 +1,31 @@
+name: gold_live
+on:
+  schedule:
+    - cron: "*/30 6-20 * * 1-5"
+  workflow_dispatch:
+concurrency:
+  group: gold_live
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pandas requests
+      - run: python gold_live.py
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          TWELVE_KEY: ${{ secrets.TWELVE_KEY }}
+      - if: always()
+        run: |
+          git config user.name "bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add gold_state.json || true
+          git diff --staged --quiet || (git commit -m "state" && git push)
